@@ -1,6 +1,7 @@
 package com.feng.crawler.test.controller;
 
 import com.feng.crawler.base.model.BaseResponse;
+import com.feng.crawler.test.service.TestLoginService;
 import com.feng.crawler.test.service.TestSliderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,8 @@ public class TestController {
 
     @Autowired
     private TestSliderService testSliderService;
+    @Autowired
+    private TestLoginService testLoginService;
 
     @RequestMapping("/slider")
     public BaseResponse testSlider() {
@@ -26,4 +29,9 @@ public class TestController {
         return BaseResponse.success();
     }
 
+    @RequestMapping("/login")
+    public BaseResponse testLogin() {
+        new Thread(() -> testLoginService.entrance()).start();
+        return BaseResponse.success();
+    }
 }
