@@ -22,7 +22,7 @@ public class TestController {
 
     @RequestMapping("/slider")
     public BaseResponse testSlider() {
-        testSliderService.entrance();
+        new Thread(() -> testSliderService.entrance()).start();
         return BaseResponse.success();
     }
 

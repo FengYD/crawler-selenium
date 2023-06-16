@@ -17,7 +17,7 @@ public class TestSliderService {
     public void entrance() {
         WebDriver driver = WebDriverUtil.initChromeWebDriver();
         driver.get("https://shop108094280.taobao.com/");
-        driver.quit();
+        System.out.println(driver.getTitle());
     }
 
 }

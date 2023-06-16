@@ -1,5 +1,6 @@
 package com.feng.crawler.base.model;
 
+import cn.hutool.core.lang.UUID;
 import com.feng.crawler.base.common.enums.ResponseEnum;
 import lombok.Data;
 
@@ -20,11 +21,13 @@ public class BaseResponse {
     private String requestId;
 
     public BaseResponse() {
+        this.requestId = UUID.fastUUID().toString();
     }
 
     public BaseResponse(ResponseEnum responseEnum) {
         this.code = responseEnum.getCode();
         this.msg = responseEnum.getName();
+        this.requestId = UUID.fastUUID().toString();
     }
 
     public static BaseResponse success(Object data) {

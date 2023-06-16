@@ -1,11 +1,9 @@
 package com.feng.crawler.base.common.utils;
 
-import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Lists;
-import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.util.HashMap;
@@ -19,18 +17,29 @@ import java.util.Map;
  */
 public class WebDriverUtil {
 
+    /**
+     * 初始化chromeWebDriver
+     */
     public static WebDriver initChromeWebDriver() {
-        ChromeOptions options = new ChromeOptions();
-        configCommonChromeOptions(options);
-        ChromeDriver driver = new ChromeDriver(options);
-        //修改window.navigator.webdirver=undefined，防机器人识别机制
+        // 配置参数
+        ChromeOptions options = configCommonChromeOptions();
+        // 设置日志输出到控制台
+        ChromeDriverService service = new ChromeDriverService.Builder()
+                .withLogOutput(System.out)
+                .build();
+        ChromeDriver driver = new ChromeDriver(service, options);
+        //修改window.navigator.webdriver=undefined，防机器人识别机制
         Map<String, Object> command = new HashMap<>();
         command.put("source", "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
         driver.executeCdpCommand("Page.addScriptToEvaluateOnNewDocument", command);
         return driver;
     }
 
-    private static void configCommonChromeOptions(ChromeOptions options) {
+    /**
+     * 配置通用chrome参数
+     */
+    private static ChromeOptions configCommonChromeOptions() {
+        ChromeOptions options = new ChromeOptions();
         // 关闭界面上的---Chrome正在受到自动软件的控制
         options.addArguments("disable-infobars");
         options.addArguments("--remote-allow-origins=*");
@@ -43,7 +52,7 @@ public class WebDriverUtil {
         //设置ExperimentalOption
         List<String> excludeSwitches = Lists.newArrayList("enable-automation");
         options.setExperimentalOption("excludeSwitches", excludeSwitches);
-        options.setExperimentalOption("useAutomationExtension", false);
+        return options;
     }
 
 
