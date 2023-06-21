@@ -1,12 +1,14 @@
 package com.feng.crawler.base.common.utils;
 
+import cn.hutool.core.io.file.FileReader;
+import cn.hutool.core.map.MapBuilder;
 import com.google.common.collect.Lists;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,9 +30,10 @@ public class WebDriverUtil {
                 .withLogOutput(System.out)
                 .build();
         ChromeDriver driver = new ChromeDriver(service, options);
-        //修改window.navigator.webdriver=undefined，防机器人识别机制
-        Map<String, Object> command = new HashMap<>();
-        command.put("source", "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
+        // 使用stealth.min.js隐藏浏览器特征
+        FileReader fileReader = new FileReader("stealth.min.js");
+        String js = fileReader.readString();
+        Map<String, Object> command = MapBuilder.create(new LinkedHashMap<String, Object>()).put("source", js).build();
         driver.executeCdpCommand("Page.addScriptToEvaluateOnNewDocument", command);
         return driver;
     }
@@ -44,15 +47,19 @@ public class WebDriverUtil {
         options.addArguments("disable-infobars");
         options.addArguments("--remote-allow-origins=*");
         options.addArguments("--disable-blink-features=AutomationControlled");
+        options.addArguments("window-size=1920x1080");
         // 允许重定向
         options.addArguments("--disable-web-security");
-        //options.addArguments("--start-maximized");
         options.addArguments("--no-sandbox");
-        //options.addArguments("--whitelisted-ips=''");
         //设置ExperimentalOption
         List<String> excludeSwitches = Lists.newArrayList("enable-automation");
         options.setExperimentalOption("excludeSwitches", excludeSwitches);
         return options;
+    }
+
+    public static void main(String[] args) {
+        WebDriver webDriver = initChromeWebDriver();
+        webDriver.get("https://nowsecure.nl");
     }
 
 

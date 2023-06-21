@@ -1,15 +1,14 @@
 package com.feng.crawler.douban.service;
 
+import cn.hutool.core.img.ImgUtil;
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.http.Header;
-import cn.hutool.http.HttpResponse;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
 import com.feng.crawler.base.common.constant.RegexConstant;
-import com.feng.crawler.base.common.enums.CustomExceptionEnum;
 import com.feng.crawler.base.common.utils.CrawlerUtil;
 import com.feng.crawler.base.common.utils.RegexUtil;
+import com.feng.crawler.base.common.utils.SliderUtil;
 import com.feng.crawler.base.domain.SysAccount;
-import com.feng.crawler.base.model.CustomException;
 import com.feng.crawler.base.service.BaseLoginService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
@@ -21,9 +20,11 @@ import org.opencv.imgproc.Imgproc;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -45,33 +46,29 @@ public class DoubanLoginService extends BaseLoginService {
         LinkedList<SysAccount> stack = new LinkedList<>(accountList);
         for (WebDriver webDriver : webDriverList) {
             SysAccount account = stack.pop();
+            CrawlerUtil.sleep(2000, 4000);
             webDriver.get(loginUrl);
             webDriver.findElement(By.className("account-tab-account")).click();
             WebElement loginForm = webDriver.findElement(By.className("account-form"));
-            loginForm.findElement(By.id("username")).sendKeys(account.getUsername());
+            String[] username = StrUtil.split(account.getUsername(), 3);
+            loginForm.findElement(By.id("username")).sendKeys(username);
             CrawlerUtil.sleep(1000, 2000);
-            loginForm.findElement(By.id("password")).sendKeys(account.getPassword());
+            String[] password = StrUtil.split(account.getPassword(), 3);
+            loginForm.findElement(By.id("password")).sendKeys(password);
             CrawlerUtil.sleep(1000, 2000);
             loginForm.findElement(By.className("account-form-field-submit")).click();
-            CrawlerUtil.sleep(1000, 2000);
+            CrawlerUtil.sleep(2000, 4000);
             if (CrawlerUtil.existWebElement(webDriver, By.id("tcaptcha_iframe_dy"))) {
                 handleCaptcha(webDriver);
             }
         }
     }
 
+    /**
+     * 处理验证码
+     */
     private void handleCaptcha(WebDriver webDriver) {
         WebElement captchaIframe = webDriver.findElement(By.id("tcaptcha_iframe_dy"));
-        Integer distance = calDistance(webDriver, captchaIframe);
-        System.out.println(distance);
-    }
-
-    /**
-     * 计算
-     *
-     * @see https://www.cnblogs.com/eliwang/p/15260822.html
-     */
-    private Integer calDistance(WebDriver webDriver, WebElement captchaIframe) {
         webDriver.switchTo().frame(captchaIframe);
         WebElement captcha = webDriver.findElement(By.className("tc-opera"));
         // 滑块的背景
@@ -88,30 +85,57 @@ public class DoubanLoginService extends BaseLoginService {
         }
         String bgPath = downloadImg(background);
         String puzzlePath = downloadImg(puzzle);
+        String cutPuzzlePath = cutPuzzleImg(puzzlePath);
         Mat bgImg = handleImg(bgPath);
-        Mat puzzleImg = handleImg(puzzlePath);
+        Mat puzzleImg = handleImg(cutPuzzlePath);
         Mat resultImg = bgImg.clone();
         Imgproc.matchTemplate(bgImg, puzzleImg, resultImg, Imgproc.TM_CCOEFF_NORMED);
         Core.MinMaxLocResult minMaxLocResult = Core.minMaxLoc(resultImg);
         FileUtil.del(bgPath);
         FileUtil.del(puzzlePath);
-        return (int) Math.ceil(minMaxLocResult.minLoc.x);
+        FileUtil.del(cutPuzzlePath);
+        // 页面上展示的图片有压缩
+        double xPoint = minMaxLocResult.maxLoc.x / 672 * 340;
+        // 滑块不在最左边，减去这个距离
+        int xDistance = (int) Math.round(xPoint - 25.29);
+        SliderUtil.moveButton(webDriver, puzzle, xDistance, SliderUtil.SIMULATE2);
+        Actions action = new Actions(webDriver).click();
+        action.perform();
+        action.release();
+        CrawlerUtil.sleep(1000, 2000);
+        // 验证码验证失败，刷新重试
+        while (CrawlerUtil.existWebElement(webDriver, By.id("tcaptcha_iframe_dy"))) {
+            captcha.findElement(By.id("reload")).click();
+            CrawlerUtil.sleep(2000, 3000);
+            handleCaptcha(webDriver);
+        }
     }
 
 
+    /**
+     * 下载图片
+     */
     private String downloadImg(WebElement webElement) {
         String style = webElement.getAttribute("style");
         String url = RegexUtil.extract(style, RegexConstant.DoubanUrlPattern);
         url = StringEscapeUtils.unescapeHtml4(url);
         url = url.replace("**", "").replace("\"", "");
-        HttpResponse response = HttpUtil.createGet(url).execute();
-        String contentType = response.header(Header.CONTENT_TYPE);
-        if (!contentType.startsWith("image")) {
-            throw new CustomException(CustomExceptionEnum.ERROR_CONTENT_TYPE);
-        }
-        String filePath = downloadPath + UUID.randomUUID().toString() + contentType.replace("image/", ".");
-        HttpUtil.downloadFile(url, filePath);
-        return filePath;
+        String imgPath = downloadPath + UUID.randomUUID().toString() + ".png";
+        HttpUtil.downloadFile(url, imgPath);
+        return imgPath;
+    }
+
+    /**
+     * puzzle块需要裁剪
+     */
+    private String cutPuzzleImg(String imgPath) {
+        String newImgPath = downloadPath + UUID.randomUUID().toString() + ".png";
+        ImgUtil.cut(
+                FileUtil.file(imgPath),
+                FileUtil.file(newImgPath),
+                new Rectangle(140, 490, 120, 120)
+        );
+        return newImgPath;
     }
 
     /**
