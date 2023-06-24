@@ -112,7 +112,7 @@ public class SliderUtil {
         }
 
         int extraTotal = resultList.stream().mapToInt(Integer::intValue).sum();
-        resultList.set(resultList.size() - 1, extraTotal - distance);
+        resultList.set(resultList.size() - 1, resultList.get(resultList.size() - 1) - (extraTotal - distance));
         return resultList;
     }
 

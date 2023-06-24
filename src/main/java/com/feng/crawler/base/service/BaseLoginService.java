@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -43,7 +44,12 @@ public abstract class BaseLoginService {
         } else if (accountList.size() < sysTask.getParallelNum()) {
             throw new CustomException(CustomExceptionEnum.LACK_ACCOUNT);
         }
-        login0(webDriverList, accountList, platform.getLoginUrl());
+        LinkedList<SysAccount> stack = new LinkedList<>(accountList);
+        for (WebDriver webDriver : webDriverList) {
+            SysAccount account = stack.pop();
+            webDriver.get(platform.getLoginUrl());
+            login0(webDriver, account);
+        }
     }
 
     /**
@@ -54,6 +60,6 @@ public abstract class BaseLoginService {
         return sysAccountMapper.selectListByPlatform(platform);
     }
 
-    protected abstract void login0(List<WebDriver> webDriverList, List<SysAccount> accountList, String loginUrl);
+    protected abstract void login0(WebDriver webDriver, SysAccount account);
 
 }

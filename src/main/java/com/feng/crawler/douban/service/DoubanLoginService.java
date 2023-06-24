@@ -21,11 +21,12 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.awt.*;
-import java.util.LinkedList;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,25 +43,26 @@ public class DoubanLoginService extends BaseLoginService {
     private String downloadPath;
 
     @Override
-    protected void login0(List<WebDriver> webDriverList, List<SysAccount> accountList, String loginUrl) {
-        LinkedList<SysAccount> stack = new LinkedList<>(accountList);
-        for (WebDriver webDriver : webDriverList) {
-            SysAccount account = stack.pop();
-            CrawlerUtil.sleep(2000, 4000);
-            webDriver.get(loginUrl);
-            webDriver.findElement(By.className("account-tab-account")).click();
-            WebElement loginForm = webDriver.findElement(By.className("account-form"));
-            String[] username = StrUtil.split(account.getUsername(), 3);
-            loginForm.findElement(By.id("username")).sendKeys(username);
-            CrawlerUtil.sleep(1000, 2000);
-            String[] password = StrUtil.split(account.getPassword(), 3);
-            loginForm.findElement(By.id("password")).sendKeys(password);
-            CrawlerUtil.sleep(1000, 2000);
-            loginForm.findElement(By.className("account-form-field-submit")).click();
-            CrawlerUtil.sleep(2000, 4000);
-            if (CrawlerUtil.existWebElement(webDriver, By.id("tcaptcha_iframe_dy"))) {
-                handleCaptcha(webDriver);
-            }
+    protected void login0(WebDriver webDriver, SysAccount account) {
+        // 等待登录界面出现
+        WebElement loginWrap = new WebDriverWait(webDriver, Duration.ofSeconds(10))
+                .until(driver -> driver.findElement(By.className("login-wrap")));
+        // 点击“密码登录”
+        loginWrap.findElement(By.className("account-tab-account")).click();
+        // 输入用户名密码，用户名密码3个一组填入对应输入框
+        WebElement loginForm = loginWrap.findElement(By.className("account-form"));
+        String[] username = StrUtil.split(account.getUsername(), 3);
+        loginForm.findElement(By.id("username")).sendKeys(username);
+        CrawlerUtil.sleep(1000, 2000);
+        String[] password = StrUtil.split(account.getPassword(), 3);
+        loginForm.findElement(By.id("password")).sendKeys(password);
+        CrawlerUtil.sleep(1000, 2000);
+        // 点击“登录豆瓣”
+        loginForm.findElement(By.className("account-form-field-submit")).click();
+        CrawlerUtil.sleep(2000, 4000);
+        // 检测滑块拼图
+        if (CrawlerUtil.existWebElement(webDriver, By.id("tcaptcha_iframe_dy"))) {
+            handleCaptcha(webDriver);
         }
     }
 

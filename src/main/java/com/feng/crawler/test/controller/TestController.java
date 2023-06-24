@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/base/test")
+@RequestMapping("/test")
 public class TestController {
 
     @Autowired

@@ -11,10 +11,12 @@ import java.util.regex.Pattern;
  */
 public class RegexConstant {
 
+
+    /************************   douban  *****************************************/
     public static final Pattern DoubanUrlPattern = Pattern.compile("url\\((.+)\\)");
 
+    /************************   common  *****************************************/
     public static final Pattern WidthPattern = Pattern.compile("width: ([.\\d]+)px;");
-
     public static final Pattern HeightPattern = Pattern.compile("height: ([.\\d]+)px;");
 
 

@@ -5,6 +5,10 @@ import cn.hutool.core.util.RandomUtil;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
+
+import java.time.Duration;
 
 /**
  * @author fengyadong
@@ -27,6 +31,15 @@ public class CrawlerUtil {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 鼠标悬浮在元素上一段时间
+     */
+    public static void mouseHover(WebDriver webDriver, WebElement webElement, Duration time) {
+        Actions action = new Actions(webDriver).moveToElement(webElement).pause(time);
+        action.perform();
+        action.release();
     }
 
 }
