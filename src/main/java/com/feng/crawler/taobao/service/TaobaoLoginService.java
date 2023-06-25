@@ -96,6 +96,9 @@ public class TaobaoLoginService extends BaseLoginService {
      */
     private void handleSlider(WebDriver webDriver) {
         log.info("处理登录滑块");
+        if (!webDriver.findElement(By.id("nc_1_n1z")).isEnabled()) {
+            webDriver.findElement(By.id("nc_1_n1z")).click();
+        }
         SliderUtil.moveButton(webDriver, webDriver.findElement(By.id("nc_1_n1z")), 258);
         log.info("登录滑块处理完成");
     }

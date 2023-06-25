@@ -35,6 +35,7 @@ public class TaobaoShopService {
             for (TaobaoShop shop : shopList) {
                 if (ObjectUtils.isEmpty(shop.getShopState())) {
                     crawlerTaobaoShop(webDriver, shop);
+                    CrawlerUtil.sleep(1000, 5000);
                 }
             }
             minId = shopList.get(shopList.size() - 1).getId();
@@ -45,9 +46,9 @@ public class TaobaoShopService {
 
     private List<TaobaoShop> selectNextGroup(long minId, int modNum, int num) {
         if (modNum == 1) {
-            return taobaoShopMapper.selectScopeOverId(minId, 1000);
+            return taobaoShopMapper.selectScopeOverId(minId, 100);
         } else {
-            return taobaoShopMapper.selectScopeOverIdAndModId(minId, 1000, modNum, num);
+            return taobaoShopMapper.selectScopeOverIdAndModId(minId, 100, modNum, num);
         }
     }
 
@@ -57,16 +58,27 @@ public class TaobaoShopService {
             taobaoShopMapper.updateById(taobaoShop);
         }
         webDriver.get(taobaoShop.getShopUrl());
-        CrawlerUtil.sleep(1000, 2000);
+        CrawlerUtil.sleep(5000, 10000);
         // 滑块验证
+        int captchaCount = 0;
         while (existNoCaptcha(webDriver)) {
             handleNoCaptcha(webDriver);
             CrawlerUtil.sleep(1000, 2000);
+            captchaCount++;
+            // 有时候一个页面的验证码一直过不去，刷新一下再验证就好了
+            if (captchaCount % 10 == 0) {
+                webDriver.navigate().refresh();
+                CrawlerUtil.sleep(1000, 2000);
+            }
         }
+        CrawlerUtil.sleep(1000, 2000);
         String title = webDriver.getTitle();
-        if (title.equals("店铺浏览-淘宝网") || title.equals("爱逛街")) {
+        if (title.equals("店铺浏览-淘宝网") || title.equals("爱逛街") ||
+                webDriver.getCurrentUrl().equals("https://store.taobao.com/shop/noshop.htm") ||
+                webDriver.getCurrentUrl().equals("https://guang.taobao.com/")) {
             taobaoShop.setShopState(ShopStateEnum.NotFound.getCode());
             taobaoShopMapper.updateById(taobaoShop);
+            return;
         }
         taobaoShop.setShopState(ShopStateEnum.Normal.getCode());
         // 从网页title中提取店铺名称
@@ -74,6 +86,8 @@ public class TaobaoShopService {
             taobaoShop.setShopName(title.substring(3, title.length() - 4));
         } else {
             log.error("未找到店铺名称, id = {} {}", taobaoShop.getId(), title);
+            taobaoShopMapper.updateById(taobaoShop);
+            return;
         }
         // 执行脚本获取shopId
         try {
@@ -83,25 +97,22 @@ public class TaobaoShopService {
                 taobaoShop.setShopId(Long.parseLong(storeId.toString()));
             }
         } catch (JavascriptException e) {
+            // 淘宝网店的样式不止一个，有时候会获取不到
             log.error("未获取到shopId, id = {}", taobaoShop.getId());
+            taobaoShopMapper.updateById(taobaoShop);
+            return;
         }
 
         // 从元素中获取开店时间
-        if (CrawlerUtil.existWebElement(webDriver, By.className("shop-summary"))) {
+        if (CrawlerUtil.existWebElement(webDriver, By.className("shop-summary")) &&
+                CrawlerUtil.existWebElement(webDriver, By.id("J_TEnterShop"))) {
+            // 有的也确实没有开店时间
             CrawlerUtil.mouseHover(webDriver, webDriver.findElement(By.id("J_TEnterShop")), Duration.ofSeconds(2));
             WebElement startDateElement = webDriver.findElement(By.className("J_id_time"));
             if (!ObjectUtils.isEmpty(startDateElement)) {
                 taobaoShop.setStartDate(startDateElement.getText());
             }
         }
-        // 使用js脚本获取开店时间
-//        if (ObjectUtils.isEmpty(taobaoShop.getShopId())) {
-//            String resJson = HttpUtil.get("https://shop.taobao.com/getShopInfo.htm?shopId=" + taobaoShop.getShopId()
-//                    + "&_ksTS=" + System.currentTimeMillis() +"_22 " + "&callback=jsonp23");
-//            JSONObject json = JSONObject.parseObject(resJson, JSONObject.class);
-//            Optional<String> startDate = Optional.ofNullable(json).map(e -> e.getJSONObject("data")).map(e -> e.getString("starts"));
-//            startDate.ifPresent(taobaoShop::setStartDate);
-//        }
         taobaoShopMapper.updateById(taobaoShop);
     }
 

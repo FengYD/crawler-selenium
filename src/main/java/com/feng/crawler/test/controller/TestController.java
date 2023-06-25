@@ -3,6 +3,7 @@ package com.feng.crawler.test.controller;
 import com.feng.crawler.base.model.BaseResponse;
 import com.feng.crawler.test.service.TestLoginService;
 import com.feng.crawler.test.service.TestSliderService;
+import com.feng.crawler.test.service.TestTitleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +23,8 @@ public class TestController {
     private TestSliderService testSliderService;
     @Autowired
     private TestLoginService testLoginService;
+    @Autowired
+    private TestTitleService testTitleService;
 
     @RequestMapping("/slider")
     public BaseResponse testSlider() {
@@ -32,6 +35,12 @@ public class TestController {
     @RequestMapping("/login")
     public BaseResponse testLogin() {
         new Thread(() -> testLoginService.entrance()).start();
+        return BaseResponse.success();
+    }
+
+    @RequestMapping("/title")
+    public BaseResponse testTitle() {
+        new Thread(() -> testTitleService.entrance()).start();
         return BaseResponse.success();
     }
 }
