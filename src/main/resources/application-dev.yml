@@ -9,8 +9,8 @@ download:
   path: D:\\temp\\download\\
 
 mybatis-plus:
-  mapper-locations: com/feng/crawler/**/mapping/*.xml
-  type-aliases-package: com.feng.crawler.**.domain
+  mapper-locations: com/feng/crawlerselenium/**/mapping/*.xml
+  type-aliases-package: com.feng.crawlerselenium.**.domain
   configuration:
     map-underscore-to-camel-case: true
     cache-enabled: true
